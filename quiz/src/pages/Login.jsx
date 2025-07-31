@@ -1,16 +1,33 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link,useNavigate } from 'react-router-dom';
+import axios from 'axios';
+import {jwtDecode} from"jwt-decode"
+import {ToastContainer} from 'react-toastify';
+import {handleError,handleSuccess } from '/Utils';
 const Login = () => {
-  const [formData, setFormData] = useState({ name: '', email: '', password: '' });
-
+  const navigate = useNavigate();
+  const [formData, setFormData] = useState({ email: '', password: '' });
+  
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async(e) => {
     e.preventDefault();
     console.log('Login Data:', formData);
-    // Add backend login logic here
+    try{
+    const res=await axios.post("http://localhost:8080/auth/login",formData)
+    const { jwToke, email, name } = res.data;
+    localStorage.setItem("token", res.data.jwToke);
+localStorage.setItem("user", name);
+    handleSuccess(res.data.message||"Login Successful");
+    setTimeout(() => {
+      navigate('/home');
+    }, 1000);
+  }catch(err){
+    handleError(err.response?.data?.error || 'Login Failed. Try Again');
+        console.log(err)
+  }
   };
 
   return (
@@ -55,6 +72,7 @@ const Login = () => {
         </button>
         <span className=''>Don't have an account ? <Link to="/signup" className='underline text-blue-500'>Signup</Link></span>
       </form>
+      <ToastContainer></ToastContainer>
     </div>
   );
 };

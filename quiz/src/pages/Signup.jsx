@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link,useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
 import { ToastContainer } from 'react-toastify';
 import { handleError,handleSuccess } from '/Utils';
 const Signup = () => {
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({ name: '', email: '', password: '' });
 
   const handleChange = (e) => {
@@ -12,6 +13,7 @@ const Signup = () => {
   };
 
   const handleSubmit = async(e) => {
+
 
     e.preventDefault();
     const{name,email,password} = formData;
@@ -21,7 +23,9 @@ const Signup = () => {
     try{
         const res = await axios.post('http://localhost:8080/auth/signup', formData);
     handleSuccess("Signup successful");
-    console.log("Response", res.data);
+    setTimeout(() => {
+      navigate('/login');
+    }, 1000);
     }catch(err){
         handleError(err.response?.data?.error || 'Signup Failed. Try Again');
     console.log("Status Code:", err.response?.status);

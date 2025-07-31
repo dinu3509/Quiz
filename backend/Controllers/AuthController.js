@@ -24,11 +24,15 @@ const login = async(req,res)=>{
         const errMsg = "Auth failed email or password is wrong";
         const user = await UserModel.findOne({email});
         if(!user){
-            return res.status(403).json({message:errMsg,success:false});
+            return res.status(403).json({message:errMsg,success:false,error:"User doesn't exist"});
         }
+        const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return res.status(403).json({ message: errMsg, success: false,error:"Invalid Password" });
+    }
         const jwToke =jwt.sign({email:user.email,_id:user._id} ,
             process.env.JWT_SECRET,
-            {expiresIn:'24h'}
+            {expiresIn:'1d'}
         )
         res.status(200).json({message:"Login Succes",success:true,jwToke,email,name:user.name})
     }catch(err){
