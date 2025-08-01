@@ -4,14 +4,15 @@ import { useEffect } from 'react';
 const RefreshHandler = ({setIsAuth}) => {
     const location = useLocation();
     const navigate = useNavigate();
+
     useEffect(()=>{
        if(localStorage.getItem('token')){
         setIsAuth(true);
         if(location.pathname==='/' || location.pathname==='/login' || location.pathname==='/signup'){
-            navigate('home',{replace:false});
+            navigate('home',{replace:true});
         }
        } 
-    },[location,navigate,setIsAuth])
+    },[location.pathname,navigate,setIsAuth])
   return (
     <div></div>
   )
