@@ -34,6 +34,16 @@ Make sure only one option is correct, and mention it exactly in 'answer'.`,
   }
 );
 
+questions = questions.filter(q => {
+    if (type === "Open Ended") {
+        return q.question && q.answer;
+    } else if (type === "Multiple Choice") {
+        return q.question && q.answer && q.option1 && q.option2 && q.option3 && q.option4 &&
+            [q.option1, q.option2, q.option3, q.option4].includes(q.answer);
+    }
+    return false;
+});
+
 }const newQuiz = new Quiz({
             topic,number,type,time,user:uid,questions:questions
         });
