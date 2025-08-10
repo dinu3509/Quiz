@@ -2,120 +2,155 @@ const OpenAI = require("openai");
 require("dotenv").config();
 
 const openai = new OpenAI({
-  baseURL: "https://openrouter.ai/api/v1",
-  apiKey: process.env.OPENROUTER_API_KEY,
-  
+  apiKey: process.env.OPENAI_API_KEY,
+  baseURL: "https://openrouter.ai/api/v1"
 });
 
+/**
+ * Strictly enforce GPT output format.
+ *
+ * @param {string} systemPrompt - Instructions for GPT.
+ * @param {string|string[]} userPrompt - User question(s).
+ * @param {object} outputFormat - Expected JSON structure.
+ * @param {string} defaultCategory - Default category if classification fails.
+ * @param {boolean} outputValueOnly - Whether to return only the values.
+ * @param {string} model - GPT model name.
+ * @param {number} temperature - Sampling temperature.
+ * @param {number} numTries - Retry attempts if format fails.
+ * @param {boolean} verbose - Log debugging info.
+ */
 async function strict_output(
-  system_prompt,
-  user_prompt,
-  output_format,
-  default_category = "",
-  output_value_only = false,
-  model = "z-ai/glm-4.5-air:free",
+  systemPrompt,
+  userPrompt,
+  outputFormat,
+  defaultCategory = "",
+  outputValueOnly = false,
+  model = "openai/gpt-oss-20b:free",
   temperature = 1,
-  num_tries = 3,
+  numTries = 3,
   verbose = false
 ) {
-  const list_input = Array.isArray(user_prompt);
-  const dynamic_elements = /<.*?>/.test(JSON.stringify(output_format));
-  const list_output = /\[.*?\]/.test(JSON.stringify(output_format));
+  const listInput = Array.isArray(userPrompt);
+  const dynamicElements = /<.*?>/.test(JSON.stringify(outputFormat));
+  const listOutput = /\[.*?\]/.test(JSON.stringify(outputFormat));
 
-  let error_msg = "";
+  let errorMsg = "";
 
-  for (let i = 0; i < num_tries; i++) {
-    let output_format_prompt = `\nYou are to output ${
-      list_output && "an array of objects in"
-    } the following in json format: ${JSON.stringify(output_format)}. \nDo not put quotation marks or escape character \\ in the output fields.`;
+  for (let attempt = 0; attempt < numTries; attempt++) {
+    let outputFormatPrompt = `\nYou are to output ${
+      listOutput ? "an array of objects in" : ""
+    } the following in JSON format: ${JSON.stringify(outputFormat)}. 
+Do not include unescaped double quotes (") inside any value — use apostrophes (') instead.`;
 
-    if (list_output) {
-      output_format_prompt += `\nIf output field is a list, classify output into the best element of the list.`;
+    if (listOutput) {
+      outputFormatPrompt += `\nIf an output field is a list, classify it into the best element.`;
     }
 
-    if (dynamic_elements) {
-      output_format_prompt += `\nAny text enclosed by < and > indicates you must generate content to replace it.`;
+    if (dynamicElements) {
+      outputFormatPrompt += `\nAny text enclosed by < and > must be replaced with your own generated content.`;
     }
 
-    if (list_input) {
-      output_format_prompt += `\nGenerate an array of json, one json for each input element.`;
+    if (listInput) {
+      outputFormatPrompt += `\nGenerate an array of JSON objects, one per input item.`;
     }
 
-    const response = await openai.chat.completions.create({
-      temperature,
+    // Call GPT
+    const completion = await openai.chat.completions.create({
       model,
+      temperature,
       messages: [
         {
           role: "system",
-          content: system_prompt + output_format_prompt + error_msg,
+          content: systemPrompt + outputFormatPrompt + errorMsg,
         },
-        { role: "user", content: user_prompt.toString() },
+        {
+          role: "user",
+          content: Array.isArray(userPrompt)
+            ? userPrompt.join("\n")
+            : String(userPrompt),
+        },
       ],
     });
 
-    let res = response.choices[0].message?.content?.replace(/'/g, '"') ?? "";
-    res = res.replace(/(\w)"(\w)/g, "$1'$2");
+    let res = completion.choices[0]?.message?.content ?? "";
+
+    // Sanitize bad quotes before parsing
+    res = sanitizeJsonString(res);
 
     if (verbose) {
-      console.log(
-        "System prompt:",
-        system_prompt + output_format_prompt + error_msg
-      );
-      console.log("\nUser prompt:", user_prompt);
-      console.log("\nGPT response:", res);
+      console.log("System prompt:", systemPrompt + outputFormatPrompt + errorMsg);
+      console.log("User prompt:", userPrompt);
+      console.log("GPT response:", res);
     }
 
     try {
-      let output = JSON.parse(res);
+      let parsed = JSON.parse(res);
 
-      if (list_input) {
-        if (!Array.isArray(output)) {
-          throw new Error("Output format not in an array of json");
-        }
-      } else {
-        output = [output];
+      if (listInput && !Array.isArray(parsed)) {
+        throw new Error("Expected an array of JSON objects but got something else.");
+      }
+      if (!listInput) {
+        parsed = [parsed];
       }
 
-      for (let index = 0; index < output.length; index++) {
-        for (const key in output_format) {
-          if (/<.*?>/.test(key)) continue;
+      // Validate and fix values
+      for (let obj of parsed) {
+        for (const key in outputFormat) {
+          if (/<.*?>/.test(key)) continue; // Skip dynamic keys
 
-          if (!(key in output[index])) {
-            throw new Error(`${key} not in json output`);
+          if (!(key in obj)) {
+            throw new Error(`Missing key: ${key}`);
           }
 
-          if (Array.isArray(output_format[key])) {
-            const choices = output_format[key];
-            if (Array.isArray(output[index][key])) {
-              output[index][key] = output[index][key][0];
+          if (Array.isArray(outputFormat[key])) {
+            const choices = outputFormat[key];
+            if (Array.isArray(obj[key])) {
+              obj[key] = obj[key][0];
             }
-            if (!choices.includes(output[index][key]) && default_category) {
-              output[index][key] = default_category;
+            if (!choices.includes(obj[key]) && defaultCategory) {
+              obj[key] = defaultCategory;
             }
-            if (output[index][key].includes(":")) {
-              output[index][key] = output[index][key].split(":")[0];
+            if (typeof obj[key] === "string" && obj[key].includes(":")) {
+              obj[key] = obj[key].split(":")[0];
             }
           }
         }
 
-        if (output_value_only) {
-          output[index] = Object.values(output[index]);
-          if (output[index].length === 1) {
-            output[index] = output[index][0];
-          }
+        if (outputValueOnly) {
+          const values = Object.values(obj);
+          obj = values.length === 1 ? values[0] : values;
         }
       }
 
-      return list_input ? output : output[0];
+      return listInput ? parsed : parsed[0];
     } catch (e) {
-      error_msg = `\n\nResult: ${res}\n\nError message: ${e}`;
-      console.log("An exception occurred:", e);
-      console.log("Current invalid json format ", res);
+      errorMsg = `\n\nResult: ${res}\n\nError: ${e.message}`;
+      console.warn("Retrying due to JSON parse error:", e.message);
     }
   }
 
   return [];
 }
 
-module.exports = { strict_output }
+/**
+ * Clean GPT's output to make it valid JSON.
+ * - Fix mismatched quotes in keys
+ * - Replace unescaped quotes in values with apostrophes
+ */
+function sanitizeJsonString(str) {
+  str = str.trim();
 
+  // Replace single-quoted keys with double quotes
+  str = str.replace(/'([^']+)'\s*:/g, '"$1":');
+
+  // Fix mismatched "key' → "key"
+  str = str.replace(/"([^"]+)'(\s*):/g, '"$1"$2:');
+
+  // Replace double quotes inside values with apostrophes
+  str = str.replace(/:\s*"([^"]*?)"([^,}\]])/g, (match, p1, p2) => {
+    return `: "${p1.replace(/"/g, "'")}"${p2}`;
+  });
+
+  return str;
+}
+module.exports = { strict_output };

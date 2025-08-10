@@ -3,9 +3,12 @@ import Button from '../components/Button'
 import Header from '../components/Header';
 import axios from 'axios';
 import { open,multiple } from '../assets/image';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
+import { Audio,Puff } from 'react-loader-spinner'
 const CreateQuiz = () => {
+
   const navigate = useNavigate();
+    const[loading,setLoading] = useState(true);
     const [selected,setSelected] = useState('Multiple Choice');
     const [topic, setTopic] = useState('');
     const [number, setNumber] = useState('');
@@ -28,6 +31,7 @@ const CreateQuiz = () => {
   };
     
     const handleSubmit=async()=>{
+      setLoading(false);
          const data = {
       topic: topic,
       number: Number(number),
@@ -46,10 +50,34 @@ const CreateQuiz = () => {
             }
         });
         console.log("Response:", res.data);
-        if(res.data.message=== "Quiz Created Successfully"){
-          const quizId = res.data.quiz._id;
-          navigate(`/writequiz/${quizId}`)
+        if (res.data.message === "Quiz Created Successfully") {
+      const quizId = res.data.quiz._id;
+
+      // Retry until questions are generated or max retries hit
+      let retries = 5;
+      let generatedQuiz = null;
+
+      while (retries > 0) {
+        const genRes = await axios.get(`http://localhost:8080/writequiz/${quizId}`);
+        const questions = genRes.data.quiz.questions;
+
+        if (questions.length > 0) {
+          console.log("Got the result correctly")
+          generatedQuiz = genRes.data.quiz;
+          break;
+        }else{
+          console.log("Didnt get answers")
         }
+
+        retries--;
+        await new Promise(resolve => setTimeout(resolve, 1000)); // wait 1 second before retry
+      }
+
+      if (generatedQuiz) {
+        navigate(`/writequiz/${quizId}`,{state:{topic}});
+      } else {
+        alert("Failed to generate questions. Please try again.");
+      }}
         
     
     }catch(err){
@@ -62,9 +90,10 @@ const CreateQuiz = () => {
   return (
     <div className='min-h-screen flex flex-col gap-5 sm:gap-20 bac'>
                 <Header></Header>
-
-        <div className=" items-center flex justify-center">
-            <div className="h-150 min-w-sm max-w-sm bg-black border border-gray-400 rounded-2xl p-5">
+                {
+                  loading?(
+                  <div className="flex justify-center">
+                    <div className="h-150 min-w-sm max-w-sm bg-black border border-gray-400 rounded-2xl p-5">
                 <div className="text-3xl text-white  font-bold">CREATE QUIZ</div>
                 <div className="text-gray-200 text-lg">Choose a topic</div>
                 <div className="text-white flex flex-col gap-2 pt-5 ">
@@ -103,7 +132,17 @@ const CreateQuiz = () => {
 
 
             </div>
-        </div>
+                  </div>
+                  ):(<div className=" items-center flex justify-center">
+            
+            <div className="text-white flex flex-col justify-center items-center">
+              <Puff></Puff>
+              <h2>Loadind...</h2>
+            </div>
+        </div>)
+                }
+
+        
     </div>
   )
 }

@@ -47,10 +47,18 @@ questions = questions.filter(q => {
 }const newQuiz = new Quiz({
             topic,number,type,time,user:uid,questions:questions
         });
+            if (!questions || questions.length === 0) {
+      return res.status(400).json({
+        message: 'No valid questions generated. Please try again.',
+        success: false
+      });
+    }
+
  await newQuiz.save();
         res.status(201).json({
             message: 'Quiz Created Successfully',
             quiz: newQuiz,
+            topic:topic,
             questions: questions
         });
         
