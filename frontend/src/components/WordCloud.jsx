@@ -28,8 +28,8 @@ const WordCloud = () => {
   ];
 
   return (
-    <div style={{ height: 175, width: 375 }}>
-      <ReactWordcloud words={words} options={options} callbacks={callbacks} />
+    <div style={{ height: 185, width: 330 }}>
+      <ReactWordcloud words={words} options={options} callbacks={callbacks} style={{ width: '100%', height: '100%' }} />
     </div>
   );
 };

@@ -3,11 +3,9 @@ const Schema = mongoose.Schema;
 const QuizResultSchema = new Schema({
     quizId:{
         type:mongoose.Schema.Types.ObjectId,
-        required:true,
     },
     userId:{
         type:mongoose.Schema.Types.ObjectId,
-        required:true
     },
     topic:{
         type:String
@@ -22,7 +20,17 @@ const QuizResultSchema = new Schema({
     },
     accuracy:{
         type:Number
-    },
+    },selected: {
+        type: Map,
+        of: String, // or `of: Schema.Types.Mixed` if you want nulls allowed
+        default: {}
+    },answers: {
+        type:[String],
+        default:[]
+    }, questions: {
+    type: [Schema.Types.Mixed],  // Use Mixed to support open-ended and MCQs
+    required: true
+  },
     time: {
     type: Date,
     default: Date.now

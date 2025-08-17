@@ -25,11 +25,12 @@ const QuizSchema = new Schema({
     type:Schema.Types.ObjectId,
     ref:'User',
     required:true
-  },
-  questions: {
-    type: [Schema.Types.Mixed],  // Use Mixed to support open-ended and MCQs
-    required: true
-  }
+  },questions: {
+        type: [Schema.Types.Mixed],  // Use Mixed to support open-ended and MCQs
+        required: true
+      },
+  submitted: { type: Boolean, default: false }
+  
 }, { timestamps: true }); 
 const quizModel = mongoose.model('Quiz',QuizSchema);
 

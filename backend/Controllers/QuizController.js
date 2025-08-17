@@ -1,5 +1,7 @@
 const Quiz = require('../Models/quiz')
 const {strict_output} = require('../gpt.js')
+const jwt = require("jsonwebtoken");
+
 const quizControl = async(req,res)=>{
     try{
         const{topic,number,type,time} = req.body;
@@ -45,7 +47,7 @@ questions = questions.filter(q => {
 });
 
 }const newQuiz = new Quiz({
-            topic,number,type,time,user:uid,questions:questions
+            topic,number,type,time,user:uid,questions:questions,submitted:false
         });
             if (!questions || questions.length === 0) {
       return res.status(400).json({
@@ -55,11 +57,17 @@ questions = questions.filter(q => {
     }
 
  await newQuiz.save();
+ const quizToken = jwt.sign(
+      { quizId: newQuiz._id, userId: uid },
+      process.env.JWT_SECRET,
+      { expiresIn: `${number}m` } // token valid for quiz duration
+    );
         res.status(201).json({
             message: 'Quiz Created Successfully',
             quiz: newQuiz,
             topic:topic,
-            questions: questions
+            questions: questions,
+            quizToken
         });
         
     }catch(err){

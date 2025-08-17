@@ -1,13 +1,12 @@
 import React from 'react'
-import Card from './Cards/Card';
-import HotCard from './Cards/HotCard';
+import {Card,HotCard} from './Cards/Card';
 import { quiz,his } from '../assets/image';
 const Dashboard = () => {
     const user = localStorage.getItem('user');
 
   return (
-    <div className='relative w-full  h-20 px-8 pt-5 text-white z-0'>
-        <div className="w-full max-w-screen-2xl mx-auto bg-transparent backdrop-blur-xl rounded-2xl ">
+    <div className='relative w-full   px-8 pt-5 text-white z-0'>
+        <div className="w-full max-w-screen-2xl mx-auto bg-transparent backdrop-blur-xl rounded-2xl py-5">
             <div className="text-center text-xl">
               <pre className="text-lg">{`👋 Welcome back ${user}!
 Get ready to test your skills and challenge your mind.
@@ -19,9 +18,7 @@ Good luck on your quiz journey! 🎯`}</pre>
               <Card title='History' image={his} btnMsg='Check' msg='View your recent activity, quiz attempts, and progress history across different topics within the app.' path='/history'></Card>
               <HotCard title='Hot Topics' btnMsg='Go' msg=' Discover trending quizzes and popular subjects that everyone’s exploring right now. Stay ahead with the latest buzz!' path='/hottopics'></HotCard>
             </div>
-            <div className="text-black bg-red-500 mt-8 text-3xl">
-              Recent Activities
-            </div>
+            
 
         </div>
     </div>

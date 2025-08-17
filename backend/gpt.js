@@ -25,7 +25,7 @@ async function strict_output(
   outputFormat,
   defaultCategory = "",
   outputValueOnly = false,
-  model = "openai/gpt-oss-20b:free",
+  model = "z-ai/glm-4.5-air:free",
   temperature = 1,
   numTries = 3,
   verbose = false
@@ -140,6 +140,11 @@ Do not include unescaped double quotes (") inside any value — use apostrophes 
 function sanitizeJsonString(str) {
   str = str.trim();
 
+  // Remove markdown code fences like ```json ... ```
+  if (str.startsWith("```")) {
+    str = str.replace(/^```[a-zA-Z]*\s*/, '').replace(/```$/, '');
+  }
+
   // Replace single-quoted keys with double quotes
   str = str.replace(/'([^']+)'\s*:/g, '"$1":');
 
@@ -153,4 +158,5 @@ function sanitizeJsonString(str) {
 
   return str;
 }
+
 module.exports = { strict_output };

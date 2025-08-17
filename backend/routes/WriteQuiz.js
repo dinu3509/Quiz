@@ -1,7 +1,9 @@
 const router = require('express').Router();
-const {getQuizById} = require('../Controllers/WriteController')
-const { postResult } = require('../Controllers/QuizResult');
-const ensureAuthenticated = require('../Middlewares/Auth')
-router.get('/:id', getQuizById);
-router.post('/result',ensureAuthenticated,postResult)
-module.exports = router
+const verifyQuizToken = require('../Middlewares/QuizAuth');
+const { getQuizById, checkSubmission, postResult } = require('../Controllers/QuizResult');
+
+router.get('/:id', verifyQuizToken, getQuizById);                 // fetch quiz
+router.get('/:id/check-submission', verifyQuizToken, checkSubmission); // check if already submitted
+router.post('/result', verifyQuizToken, postResult);               // submit result
+
+module.exports = router;

@@ -10,6 +10,8 @@ import Button from '@mui/material/Button';
 import WriteQuiz from './pages/WriteQuiz';
 import RefreshHandler from '../RefreshHandler';
 import SubmittedQuiz from './pages/SubmittedQuiz';
+import Profile from './pages/Profile';
+import QuizResult from './pages/QuizResult';
 function App() {
   const [isAuth, setIsAuth] = useState(() => {
   return localStorage.getItem('token') ? true : false;
@@ -33,7 +35,10 @@ function App() {
 <Route path="/writequiz/:id" element={<PrivateRoute element={<WriteQuiz />} />} />
 <Route path='/quiz-submitted' element={<PrivateRoute element={<SubmittedQuiz />} />}></Route>
 <Route path="/history" element={<PrivateRoute element={<History />} />} />
+<Route path="/history/:id" element={<PrivateRoute element={<QuizResult />} />} />
+
 <Route path="/hottopics" element={<PrivateRoute element={<HotTopics />} />} />
+<Route path="/profile" element={<PrivateRoute element={<Profile />} />} />
   </Routes>      
     </>
   )
